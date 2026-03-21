@@ -2,19 +2,18 @@ import os
 import re
 import ast
 import time
-import json
 import signal
+import shutil
 import javalang
 import requests
 import tempfile
 import threading
 from git import Repo
-import redis
 
 STOP_FLAG = threading.Event()
+VISUALIZER_URL = os.getenv('VISUALIZER_URL', 'http://localhost:8000')
 
 def mine_repositories():
-    r = get_redis_client()
     while not STOP_FLAG.is_set():
         try:
             for lang in ['Python', 'Java']:
@@ -27,12 +26,11 @@ def mine_repositories():
                     if clone_url:
                         words = process_repo(clone_url)
                         if words:
-                            data = {'repo': repo_name,'language': lang,'words': words,'timestamp': time.time()}
-                            print(data)
-                            r.publish('function_names', json.dumps(data))
+                            data = {'repo': repo_name, 'language': lang, 'words': words, 'timestamp': time.time()}
+                            send_to_visualizer(data)
             if not STOP_FLAG.is_set():
                 time.sleep(60)
-        except Exception as e:
+        except Exception:
             time.sleep(10)
 
 def fetch_repos(language, per_page=30, pages=3):
@@ -66,11 +64,10 @@ def process_repo(repo_url):
                     words.extend(file_words)
                 except Exception:
                     pass
-    except Exception as e:
+    except Exception:
         return []
     finally:
         if temp_dir and os.path.exists(temp_dir):
-            import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
     return words
 
@@ -109,8 +106,11 @@ def extract_java_methods(content):
         pass
     return words
 
-def get_redis_client():
-    return redis.Redis(host="localhost", port=6379, decode_responses=True)
+def send_to_visualizer(data):
+    try:
+        requests.post(f'{VISUALIZER_URL}/api/data', json=data, timeout=10)
+    except Exception as e:
+        print(f'Error sending data to visualizer: {e}')
 
 def extract_words(name):
     snake = [p.lower() for p in re.split(r'_', name) if p]
