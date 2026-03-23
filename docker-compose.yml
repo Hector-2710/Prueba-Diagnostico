@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  visualizer:
+    build: 
+      context: .
+      dockerfile: visualizer/Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - mining-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  miner:
+    build: 
+      context: .
+      dockerfile: miner/Dockerfile
+    depends_on:
+      visualizer:
+        condition: service_healthy
+    environment:
+      - VISUALIZER_URL=http://visualizer:8000
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    networks:
+      - mining-net
+    volumes:
+      - /tmp/repos:/tmp/repos
+
+networks:
+  mining-net:
+    driver: bridge
