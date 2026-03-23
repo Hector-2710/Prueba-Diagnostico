@@ -10,6 +10,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 word_counter = Counter()
 connected_clients = []
+miner_enabled = False
 
 @app.get("/")
 async def get():
@@ -55,6 +56,29 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/api/words")
 async def get_words(top: int = 50):
     return get_top_words(top)
+
+@app.post("/api/miner/start")
+async def start_miner():
+    global miner_enabled
+    miner_enabled = True
+    return {'status': 'started', 'running': True}
+
+@app.post("/api/miner/stop")
+async def stop_miner():
+    global miner_enabled
+    miner_enabled = False
+    return {'status': 'stopped', 'running': False}
+
+@app.get("/api/miner/status")
+async def miner_status():
+    global miner_enabled
+    return {'running': miner_enabled}
+
+@app.get("/api/miner/should-run")
+async def should_miner_run():
+    """Endpoint que el miner consulta para saber si debe ejecutarse"""
+    global miner_enabled
+    return {'should_run': miner_enabled}
 
 def get_top_words(n=50):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
