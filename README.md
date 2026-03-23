@@ -1,4 +1,4 @@
-# Visualizador de Minería
+# Test de Diagnostico
 
 Análisis en tiempo real de las palabras más usadas en nombres de funciones desde repositorios de GitHub.
 
