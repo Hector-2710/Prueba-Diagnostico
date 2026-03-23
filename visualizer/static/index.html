@@ -59,7 +59,7 @@
         .chart-container {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(0, 212, 255, 0.2);
-            padding: 20px;
+            padding: 30px;
             border-radius: 10px;
         }
         .chart-container h3 { 
@@ -114,42 +114,15 @@
         
         #chart svg { width: 100%; height: auto; }
         
-        @media (max-width: 900px) {
-            .layout { grid-template-columns: 1fr; }
-        }
-        
-        /* Scrollbar personalizado */
-        .activity-log::-webkit-scrollbar {
-            width: 8px;
-        }
-        .activity-log::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .activity-log::-webkit-scrollbar-thumb {
-            background: rgba(0, 212, 255, 0.3);
-            border-radius: 4px;
-        }
-        .activity-log::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 212, 255, 0.6);
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 Mining Visualizer</h1>
-            <p>Análisis en tiempo real de nombres de funciones desde repositorios</p>
+            <h1>Visualizer</h1>
         </div>
         
         <div class="stats">
-            <div class="stat-box">
-                <div class="value" id="totalWords">0</div>
-                <div class="label">Palabras Totales</div>
-            </div>
-            <div class="stat-box">
-                <div class="value" id="uniqueWords">0</div>
-                <div class="label">Palabras Únicas</div>
-            </div>
             <div class="stat-box">
                 <div class="value" id="reposAnalyzed">0</div>
                 <div class="label">Repos Analizados</div>
@@ -162,13 +135,8 @@
         
         <div class="layout">
             <div class="chart-container">
-                <h3>Top 20 Palabras Más Frecuentes</h3>
+                <h3>Top N Palabras Más Frecuentes</h3>
                 <div id="chart"></div>
-            </div>
-            
-            <div class="activity-log">
-                <h3>Actividad Reciente</h3>
-                <div id="activity"></div>
             </div>
         </div>
     </div>
@@ -176,7 +144,6 @@
     <script>
         const ws = new WebSocket(`ws://${window.location.host}/ws`);
         let reposCount = 0;
-        const recentRepos = [];
         
         ws.onopen = () => {
             document.getElementById('connectionStatus').style.color = '#00ff55';
@@ -206,8 +173,6 @@
         };
         
         function updateStats(data) {
-            document.getElementById('totalWords').textContent = data.total_words.toLocaleString();
-            document.getElementById('uniqueWords').textContent = data.unique_words.toLocaleString();
             document.getElementById('reposAnalyzed').textContent = reposCount;
             updateChart(data.top);
         }
@@ -284,28 +249,6 @@
                 .call(d3.axisLeft(yScale));
         }
         
-        function addToLog(repo, language, count) {
-            const item = document.createElement('div');
-            item.className = 'activity-item';
-            const timestamp = new Date().toLocaleTimeString();
-            item.innerHTML = `
-                <span class="repo">${repo}</span>
-                <span class="lang">${language}</span>
-                <div style="color: #999; font-size: 0.85em; margin-top: 5px;">
-                    ${count} palabras • ${timestamp}
-                </div>
-            `;
-            
-            const activity = document.getElementById('activity');
-            activity.insertBefore(item, activity.firstChild);
-            
-            // Mantener solo últimas 10
-            while (activity.children.length > 10) {
-                activity.removeChild(activity.lastChild);
-            }
-        }
-        
-        // Dibujar gráfico inicial vacío
         updateChart([]);
     </script>
 </body>
