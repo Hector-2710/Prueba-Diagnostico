@@ -16,10 +16,17 @@ VISUALIZER_URL = os.getenv('VISUALIZER_URL', 'http://localhost:8000')
 def mine_repositories():
     while not STOP_FLAG.is_set():
         try:
+            # Chequear si el visualizer permite continuar
+            if not should_continue_mining():
+                time.sleep(2)
+                continue
+            
             for lang in ['Python', 'Java']:
+                if STOP_FLAG.is_set() or not should_continue_mining():
+                    break
                 repos = fetch_repos(lang, per_page=15, pages=2)
                 for repo in repos[:20]:
-                    if STOP_FLAG.is_set():
+                    if STOP_FLAG.is_set() or not should_continue_mining():
                         break
                     repo_name = repo.get('full_name', '')
                     clone_url = repo.get('clone_url', '')
@@ -28,8 +35,10 @@ def mine_repositories():
                         if words:
                             data = {'repo': repo_name, 'language': lang, 'words': words, 'timestamp': time.time()}
                             send_to_visualizer(data)
-            if not STOP_FLAG.is_set():
+            if not STOP_FLAG.is_set() and should_continue_mining():
                 time.sleep(60)
+            elif not should_continue_mining():
+                time.sleep(2)
         except Exception:
             time.sleep(10)
 
@@ -111,6 +120,16 @@ def send_to_visualizer(data):
         requests.post(f'{VISUALIZER_URL}/api/data', json=data, timeout=10)
     except Exception as e:
         print(f'Error sending data to visualizer: {e}')
+
+def should_continue_mining():
+    """Consulta al visualizer si debe continuar minando"""
+    try:
+        resp = requests.get(f'{VISUALIZER_URL}/api/miner/should-run', timeout=5)
+        if resp.status_code == 200:
+            return resp.json().get('should_run', False)
+    except Exception:
+        pass
+    return False
 
 def extract_words(name):
     snake = [p.lower() for p in re.split(r'_', name) if p]
